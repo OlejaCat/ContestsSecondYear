@@ -64,17 +64,17 @@ class ResourceBackpack {
 };
 
 int main() {
-  std::size_t missions_number;
+  int missions_number;
   int max_resources;
   std::cin >> missions_number >> max_resources;
 
   std::vector<int> mission_resources(missions_number);
-  for (std::size_t i = 0; i < missions_number; ++i) {
+  for (int i = 0; i < missions_number; ++i) {
     std::cin >> mission_resources[i];
   }
 
   std::vector<int> mission_rewards(missions_number);
-  for (std::size_t i = 0; i < missions_number; ++i) {
+  for (int i = 0; i < missions_number; ++i) {
     std::cin >> mission_rewards[i];
   }
 
