@@ -68,7 +68,6 @@ class SmallBigInt {
       }
     }
 
-    value_ = new_value;
     value_ = new_value.empty() ? "0" : new_value;
   }
 
