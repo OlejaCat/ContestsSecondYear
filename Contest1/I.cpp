@@ -3,6 +3,8 @@
 #include <tuple>
 #include <vector>
 
+
+
 void CalculateLongestSequences(const std::vector<int>& gangsters,
                                std::vector<int>& greater_numbers,
                                std::vector<int>& greater_path_choices,
@@ -10,15 +12,25 @@ void CalculateLongestSequences(const std::vector<int>& gangsters,
                                std::vector<int>& lesser_path_choices);
 
 std::tuple<int, int, bool> FindLongestSequenc(
-    const std::vector<int>& greater_numbers,
-    const std::vector<int>& lesser_numbers);
+        const std::vector<int>& greater_numbers,
+        const std::vector<int>& lesser_numbers);
 
 std::vector<int> RestoreBestSequence(int start_index, bool increasing_order,
                                      std::vector<int>& greater_path_choices,
                                      std::vector<int>& lesser_path_choices,
                                      const std::vector<int>& gangsters);
 
+void Solve();
+
+
 int main() {
+  Solve();
+
+  return 0;
+}
+
+
+void Solve() {
   int number_of_districts = 0;
   std::cin >> number_of_districts;
   std::vector<int> numbers_of_gangsters(number_of_districts);
