@@ -12,7 +12,12 @@ class ConvexHullTrick {
         : coeff_k(coeff_k), coeff_b(coeff_b) {}
 
     long long GetValue(long long dot) const {
-      return (coeff_k * dot) + coeff_b;
+      __int128_t temp_k = coeff_k;
+      __int128_t temp_dot = dot;
+
+      __int128_t result = (temp_k * temp_dot) + coeff_b;
+
+      return static_cast<long long>(result);
     }
 
     friend long long Cross(const Line& lhs, const Line& rhs) {
