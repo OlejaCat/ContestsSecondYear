@@ -6,9 +6,6 @@
 class SmallBigInt {
   friend std::istream& operator>>(std::istream& istream, SmallBigInt& number) {
     istream >> number.value_;
-    if (number.value_.empty()) {
-      number.value_ = "0";
-    }
     return istream;
   }
 
@@ -31,7 +28,7 @@ class SmallBigInt {
 
     std::string new_value = value_;
     int remainder = -1;
-    for (std::size_t i = value_.length() - 1; i >= 0; --i) {
+    for (long long i = static_cast<long long>(value_.length() - 1); i >= 0; --i) {
       int digit = GetDigit(new_value[i]) + remainder;
       if (digit < 0) {
         new_value[i] = GetChar(digit + kBase);
@@ -67,8 +64,6 @@ class SmallBigInt {
         new_value += std::to_string(result_digit);
       }
     }
-
-    value_ = new_value.empty() ? "0" : new_value;
   }
 
  private:
@@ -81,7 +76,7 @@ class SmallBigInt {
 
 class MatrixWithBigInt {
   friend MatrixWithBigInt FastPow(MatrixWithBigInt base, SmallBigInt degree) {
-    MatrixWithBigInt result(base.size_, base.module_);
+    MatrixWithBigInt result(base.size(), base.module_);
     result.SetIdentity();
     while (!degree.IsZero()) {
       if (degree.IsOdd()) {
@@ -94,8 +89,8 @@ class MatrixWithBigInt {
   }
 
  public:
-  MatrixWithBigInt(std::size_t size, long long module)
-      : size_(size), module_(module) {
+  MatrixWithBigInt(std::size_t size, long long module) 
+      : module_(module) {
     data_.assign(size, std::vector<long long>(size, 0));
   }
 
@@ -108,19 +103,21 @@ class MatrixWithBigInt {
   }
 
   void SetIdentity() {
-    for (std::size_t i = 0; i < size_; ++i) {
-      for (std::size_t j = 0; j < size_; ++j) {
-        data_[i][j] = (i == j) ? 1 : 0;
-      }
+    for (std::size_t i = 0; i < size(); ++i) {
+      data_[i][i] = 1;
     }
   }
 
+  std::size_t size() const {
+    return data_.size();
+  }
+
   MatrixWithBigInt operator*(const MatrixWithBigInt& other) const {
-    MatrixWithBigInt result(size_, module_);
-    for (std::size_t i = 0; i < size_; ++i) {
-      for (std::size_t j = 0; j < size_; ++j) {
+    MatrixWithBigInt result(size(), module_);
+    for (std::size_t i = 0; i < size(); ++i) {
+      for (std::size_t j = 0; j < size(); ++j) {
         long long element = 0;
-        for (std::size_t k = 0; k < size_; ++k) {
+        for (std::size_t k = 0; k < size(); ++k) {
           element = (element + data_[i][k] * other.data_[k][j]) % module_;
         }
         result.data_[i][j] = element;
@@ -131,8 +128,8 @@ class MatrixWithBigInt {
 
   long long SumElements() const {
     long long result = 0;
-    for (std::size_t i = 0; i < size_; ++i) {
-      for (std::size_t j = 0; j < size_; ++j) {
+    for (std::size_t i = 0; i < data_.size(); ++i) {
+      for (std::size_t j = 0; j < data_.size(); ++j) {
         result = (result + data_[i][j]) % module_;
       }
     }
@@ -141,7 +138,6 @@ class MatrixWithBigInt {
 
  private:
   std::vector<std::vector<long long>> data_;
-  std::size_t size_;
   long long module_;
 };
 
