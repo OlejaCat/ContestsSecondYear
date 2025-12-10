@@ -14,7 +14,7 @@ using Vector2D = Vector1D<Vector1D<T>>;
 
 const long long kInfDistance = std::numeric_limits<long long>::max();
 
-class InterestingGraph {
+class TimeCostGraph {
  private:
   const long long kZeroDistance = 0;
 
@@ -27,19 +27,19 @@ class InterestingGraph {
 
   using NodeType = EdgeInfo;
 
-  InterestingGraph() = default;
+  TimeCostGraph() = default;
 
-  InterestingGraph(long long vertex_numbers, long long edge_numbers)
+  TimeCostGraph(long long vertex_numbers, long long edge_numbers)
       : vertex_numbers_(vertex_numbers),
         edge_numbers_(edge_numbers),
         graph_(vertex_numbers + 1) {}
 
-  InterestingGraph(const InterestingGraph& other)
+  TimeCostGraph(const TimeCostGraph& other)
       : vertex_numbers_(other.vertex_numbers_),
         edge_numbers_(other.edge_numbers_),
         graph_(other.graph_) {}
 
-  InterestingGraph& operator=(const InterestingGraph& other) {
+  TimeCostGraph& operator=(const TimeCostGraph& other) {
     if (this != &other) {
       vertex_numbers_ = other.vertex_numbers_;
       edge_numbers_ = other.edge_numbers_;
@@ -90,7 +90,7 @@ class TimeDijkstra {
 
   using PriorityQueue = std::priority_queue<State, Vector1D<State>, std::greater<State>>;
 
-  TimeDijkstra(const InterestingGraph& graph, long long max_time)
+  TimeDijkstra(const TimeCostGraph& graph, long long max_time)
       : graph_(graph), max_time_(max_time) {}
 
   void Calculate(long long start_vertex, long long target_vertex) {
@@ -197,7 +197,7 @@ class TimeDijkstra {
   }
 
  private:
-  InterestingGraph graph_;
+  TimeCostGraph graph_;
   long long max_time_;
   long long start_vertex_;
   long long target_vertex_;
@@ -206,39 +206,44 @@ class TimeDijkstra {
   Vector2D<long long> previous_time_;
 };
 
-void WeCanFindHim();
-void InitializeGraph(InterestingGraph& graph);
+
+
+
+void PrintPath(const Vector1D<long long>& path);
+std::istream& operator>>(std::istream& istream, TimeCostGraph& graph);
 
 int main() {
   std::ios_base::sync_with_stdio(false);
   std::cin.tie(nullptr);
 
-  WeCanFindHim();
-
-  return 0;
-}
-
-void WeCanFindHim() {
   long long vertex_numbers;
   long long edge_numbers;
   long long max_time;
   std::cin >> vertex_numbers >> edge_numbers >> max_time;
 
-  InterestingGraph graph(vertex_numbers, edge_numbers);
-  InitializeGraph(graph);
+  TimeCostGraph graph(vertex_numbers, edge_numbers);
+  std::cin >> graph;
 
   TimeDijkstra amogus_finder(graph, max_time);
   amogus_finder.Calculate(1, vertex_numbers);
 
   if (!amogus_finder.IsTargetReachable()) {
     std::cout << -1 << "\n";
-    return;
+    return 0;
   }
 
   long long min_cost = amogus_finder.GetMinCost();
-  Vector1D<long long> path = amogus_finder.RestorePath();
-
   std::cout << min_cost << "\n";
+
+  Vector1D<long long> path = amogus_finder.RestorePath();
+  PrintPath(path);
+
+
+  return 0;
+}
+
+
+void PrintPath(const Vector1D<long long>& path) {
   std::cout << path.size() << "\n";
   for (size_t i = 0; i < path.size(); i++) {
     if (i > 0)
@@ -248,7 +253,8 @@ void WeCanFindHim() {
   std::cout << "\n";
 }
 
-void InitializeGraph(InterestingGraph& graph) {
+
+std::istream& operator>>(std::istream& istream, TimeCostGraph& graph) {
   for (long long i = 0; i < graph.GetEdgesNumber(); i++) {
     long long lhs;
     long long rhs;
@@ -257,4 +263,6 @@ void InitializeGraph(InterestingGraph& graph) {
     std::cin >> lhs >> rhs >> cost >> time;
     graph.AddEdge(lhs, rhs, cost, time);
   }
+
+  return istream;
 }
