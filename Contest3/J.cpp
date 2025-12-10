@@ -22,17 +22,12 @@ class NodeData {
         move_type_(move_type),
         depth_(depth) {}
 
-  Color& GetColor() { return color_; }
   const Color& GetColor() const { return color_; }
-
-  std::string& GetParent() { return parent_grid_string_; }
   const std::string& GetParent() const { return parent_grid_string_; }
-
-  char& GetMove() { return move_type_; }
   const char& GetMove() const { return move_type_; }
-
-  int& GetDepth() { return depth_; }
   const int& GetDepth() const { return depth_; }
+
+  void SetColor(Color color) { color_ = color; }
 
  private:
   Color color_;
@@ -41,7 +36,7 @@ class NodeData {
   int depth_;
 };
 
-class Solution {
+class PuzzleSolver {
  private:
   const std::string kSolvedGrid = "123456780";
 
@@ -57,20 +52,23 @@ class Solution {
       {+0, +1, kRightMove}};
 
  public:
-  Solution(const std::string& initial_grid_string) {
-    if (initial_grid_string == kSolvedGrid) {
+  PuzzleSolver(const std::string& initial_grid_string)
+      : initial_grid_(initial_grid_string) {
+    if (initial_grid_string != kSolvedGrid) {
+      queue_forward_.push(initial_grid_string);
+      forward_search_[initial_grid_string] = NodeData(Color::GRAY, "", '\0', 0);
+
+      queue_reverse_.push(kSolvedGrid);
+      reverse_search_[kSolvedGrid] = NodeData(Color::GRAY, "", '\0', 0);
+    }
+  }
+
+  void Solve() {
+    if (initial_grid_ == kSolvedGrid) {
       std::cout << 0 << "\n";
       return;
     }
 
-    queue_forward_.push(initial_grid_string);
-    forward_search_[initial_grid_string] = NodeData(Color::GRAY, "", '\0', 0);
-
-    queue_reverse_.push(kSolvedGrid);
-    reverse_search_[kSolvedGrid] = NodeData(Color::GRAY, "", '\0', 0);
-  }
-
-  void Solve() {
     std::string meeting_key;
 
     while (!queue_forward_.empty() && !queue_reverse_.empty()) {
@@ -158,7 +156,7 @@ class Solution {
       }
     }
 
-    current_search[current_grid].GetColor() = Color::BLACK;
+    current_search[current_grid].SetColor(Color::BLACK);
     return false;
   }
 
@@ -208,12 +206,14 @@ class Solution {
     std::string forward_path = RestoreForwardPath(meeting_state);
     std::string reverse_path = RestoreReversePath(meeting_state);
 
-    int total_depth = forward_search_[meeting_state].GetDepth() +
-                      reverse_search_[meeting_state].GetDepth();
+    int total_depth = forward_search_[meeting_state].GetDepth()
+                      + reverse_search_[meeting_state].GetDepth();
 
     std::cout << total_depth << "\n";
     std::cout << forward_path << reverse_path << "\n";
   }
+
+  std::string initial_grid_;
 
   std::map<std::string, NodeData> forward_search_;
   std::map<std::string, NodeData> reverse_search_;
@@ -232,9 +232,8 @@ int main() {
     initial_grid += std::to_string(value);
   }
 
-  TagSolver::Solution solution(initial_grid);
+  TagSolver::PuzzleSolver solution(initial_grid);
   solution.Solve();
 
   return 0;
 }
-
