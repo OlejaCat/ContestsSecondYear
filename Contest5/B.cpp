@@ -42,21 +42,26 @@ class WeightedUndirectedGraph {
   }
 
   void AddEdge(long long start, long long end, long long weight) {
-    assert(start <= vertex_numbers_);
-    assert(end <= vertex_numbers_);
+    if (start <= 0 || start > vertex_numbers_ || end <= 0 || end > vertex_numbers_) {
+      throw std::out_of_range("Vertex index out of bounds (should be 1 to N).");
+    }
 
     graph_[start].push_back({end, weight});
     graph_[end].push_back({start, weight});
   }
 
   Vector1D<NodeType>& GetNeighbors(long long vertex) {
-    assert(vertex <= vertex_numbers_);
+    if (vertex <= 0 || vertex > vertex_numbers_) {
+      throw std::out_of_range("Vertex index out of bounds in GetNeighbors.");
+    }
 
     return graph_[vertex];
   }
 
   const Vector1D<NodeType>& GetNeighbors(long long vertex) const {
-    assert(vertex <= vertex_numbers_);
+    if (vertex <= 0 || vertex > vertex_numbers_) {
+      throw std::out_of_range("Vertex index out of bounds in GetNeighbors.");
+    }
 
     return graph_[vertex];
   }
@@ -196,19 +201,12 @@ class PlayerDijkstra : public DijkstraBase {
   Vector1D<long long> virus_distances_;
 };
 
-void CanYouWin();
-void InitializeGraph(WeightedUndirectedGraph& graph);
+std::istream& operator>>(std::istream& istream, WeightedUndirectedGraph& graph);
 
 int main() {
   std::ios_base::sync_with_stdio(false);
   std::cin.tie(0);
 
-  CanYouWin();
-
-  return 0;
-}
-
-void CanYouWin() {
   long long vertex_number;
   long long edge_number;
   long long virus_numbers;
@@ -220,7 +218,7 @@ void CanYouWin() {
   }
 
   WeightedUndirectedGraph graph(vertex_number, edge_number);
-  InitializeGraph(graph);
+  std::cin >> graph;
 
   long long start_point, cure_point;
   std::cin >> start_point >> cure_point;
@@ -238,9 +236,14 @@ void CanYouWin() {
   } else {
     std::cout << result << "\n";
   }
+
+  return 0;
 }
 
-void InitializeGraph(WeightedUndirectedGraph& graph) {
+void CanYouWin() {
+}
+
+std::istream& operator>>(std::istream& istream, WeightedUndirectedGraph& graph) {
   for (long long i = 0; i < graph.GetEdgesNumber(); ++i) {
     long long lhs;
     long long rhs;
@@ -248,4 +251,6 @@ void InitializeGraph(WeightedUndirectedGraph& graph) {
     std::cin >> lhs >> rhs >> weight;
     graph.AddEdge(lhs, rhs, weight);
   }
+
+  return istream;
 }
