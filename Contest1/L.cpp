@@ -64,44 +64,28 @@ class ResourceBackpack {
 };
 
 
-class Solution {
- public:
-  Solution() {
-    std::cin >> missions_number_ >> max_resources_;
-
-    mission_resources_.resize(missions_number_);
-    missions_rewards_.resize(missions_number_);
-
-    for (int i = 0; i < missions_number_; ++i) {
-      std::cin >> mission_resources_[i];
-    }
-
-    for (int i = 0; i < missions_number_; ++i) {
-      std::cin >> missions_rewards_[i];
-    }
-  }
-
-  void Solve() {
-    ResourceBackpack resources_backpack(max_resources_, mission_resources_,
-                                        missions_rewards_);
-    resources_backpack.CalculateBackpack();
-    for (const auto& value : resources_backpack.RestorePath()) {
-      std::cout << value << "\n";
-    }
-  }
-
- private:
-  int missions_number_;
-  int max_resources_;
-
-  std::vector<int> mission_resources_;
-  std::vector<int> missions_rewards_;
-};
-
-
 int main() {
-  Solution solution;
-  solution.Solve(); 
+  int missions_number;
+  int max_resources;
+  std::cin >> missions_number >> max_resources;
+
+  std::vector<int> mission_resources(missions_number);
+  std::vector<int> missions_rewards(missions_number);
+
+  for (int i = 0; i < missions_number; ++i) {
+    std::cin >> mission_resources[i];
+  }
+
+  for (int i = 0; i < missions_number; ++i) {
+    std::cin >> missions_rewards[i];
+  }
+
+  ResourceBackpack resources_backpack(max_resources, mission_resources,
+                                      missions_rewards);
+  resources_backpack.CalculateBackpack();
+  for (const auto& value : resources_backpack.RestorePath()) {
+    std::cout << value << "\n";
+  }
 
   return 0;
 }
