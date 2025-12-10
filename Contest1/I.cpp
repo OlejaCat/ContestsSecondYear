@@ -20,17 +20,7 @@ std::vector<int> RestoreBestSequence(int start_index, bool increasing_order,
                                      std::vector<int>& lesser_path_choices,
                                      const std::vector<int>& gangsters);
 
-void Solve();
-
-
 int main() {
-  Solve();
-
-  return 0;
-}
-
-
-void Solve() {
   int number_of_districts = 0;
   std::cin >> number_of_districts;
   std::vector<int> numbers_of_gangsters(number_of_districts);
@@ -60,7 +50,10 @@ void Solve() {
   }
 
   std::cout << std::endl;
+
+  return 0;
 }
+
 
 void CalculateLongestSequences(const std::vector<int>& gangsters,
                                std::vector<int>& greater_numbers,
