@@ -42,7 +42,8 @@ class WeightedUndirectedGraph {
   }
 
   void AddEdge(long long start, long long end, long long weight) {
-    if (start <= 0 || start > vertex_numbers_ || end <= 0 || end > vertex_numbers_) {
+    if (start <= 0 || start > vertex_numbers_ || end <= 0
+        || end > vertex_numbers_) {
       throw std::out_of_range("Vertex index out of bounds (should be 1 to N).");
     }
 
@@ -202,11 +203,12 @@ class PlayerDijkstra : public DijkstraBase {
 };
 
 std::istream& operator>>(std::istream& istream, WeightedUndirectedGraph& graph);
+void PrintDistanceIfReachable(PlayerDijkstra& player_graph,
+                              long long cure_point);
 
-int main() {
-  std::ios_base::sync_with_stdio(false);
-  std::cin.tie(0);
-
+auto ReadInput() {
+  // Пришлось определить тут, так как иначе не работает вывод типов
+  // А без него все очень сложно будет выглядеть
   long long vertex_number;
   long long edge_number;
   long long virus_numbers;
@@ -223,6 +225,15 @@ int main() {
   long long start_point, cure_point;
   std::cin >> start_point >> cure_point;
 
+  return std::make_tuple(graph, infected, start_point, cure_point);
+}
+
+int main() {
+  std::ios_base::sync_with_stdio(false);
+  std::cin.tie(0);
+
+  auto [graph, infected, start_point, cure_point] = ReadInput();
+
   GraphInfection virus_dijkstra(graph, infected);
   virus_dijkstra.Calculate();
   const auto& virus_distances = virus_dijkstra.GetDistances();
@@ -230,20 +241,13 @@ int main() {
   PlayerDijkstra player_dijkstra(graph, start_point, virus_distances);
   player_dijkstra.Calculate();
 
-  long long result = player_dijkstra.GetDistanceTo(cure_point);
-  if (result == kInfDistance) {
-    std::cout << -1 << "\n";
-  } else {
-    std::cout << result << "\n";
-  }
+  PrintDistanceIfReachable(player_dijkstra, cure_point);
 
   return 0;
 }
 
-void CanYouWin() {
-}
-
-std::istream& operator>>(std::istream& istream, WeightedUndirectedGraph& graph) {
+std::istream& operator>>(std::istream& istream,
+                         WeightedUndirectedGraph& graph) {
   for (long long i = 0; i < graph.GetEdgesNumber(); ++i) {
     long long lhs;
     long long rhs;
@@ -253,4 +257,14 @@ std::istream& operator>>(std::istream& istream, WeightedUndirectedGraph& graph) 
   }
 
   return istream;
+}
+
+void PrintDistanceIfReachable(PlayerDijkstra& player_graph,
+                              long long cure_point) {
+  long long result = player_graph.GetDistanceTo(cure_point);
+  if (result == kInfDistance) {
+    std::cout << -1 << "\n";
+  } else {
+    std::cout << result << "\n";
+  }
 }
