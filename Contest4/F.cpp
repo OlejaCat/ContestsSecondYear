@@ -23,19 +23,16 @@ class Graph {
   Graph() = default;
 
   Graph(long long vertex_numbers, long long edge_numbers)
-      : vertex_numbers_(vertex_numbers),
-        edge_numbers_(edge_numbers),
+      : edge_numbers_(edge_numbers),
         graph_(vertex_numbers + 1) {}
 
   Graph(const Graph& other)
-      : vertex_numbers_(other.vertex_numbers_),
-        edge_numbers_(other.edge_numbers_),
+      : edge_numbers_(other.edge_numbers_),
         graph_(other.graph_),
         distances_from_vertex_(other.distances_from_vertex_) {}
 
   Graph& operator=(const Graph& other) {
     if (this != &other) {
-      vertex_numbers_ = other.vertex_numbers_;
       edge_numbers_ = other.edge_numbers_;
       graph_ = other.graph_;
       distances_from_vertex_ = other.distances_from_vertex_;
@@ -44,31 +41,31 @@ class Graph {
   }
 
   void AddEdge(long long start, long long end) {
-    assert(start <= vertex_numbers_);
-    assert(end <= vertex_numbers_);
+    assert(start <= GetVertexNumber());
+    assert(end <= GetVertexNumber());
 
     graph_[start].push_back(end);
     graph_[end].push_back(start);
   }
 
   Vector1D<long long>& GetNeighbors(long long vertex) {
-    assert(vertex <= vertex_numbers_);
+    assert(vertex <= GetVertexNumber());
 
     return graph_[vertex];
   }
 
   const Vector1D<long long>& GetNeighbors(long long vertex) const {
-    assert(vertex <= vertex_numbers_);
+    assert(vertex <= GetVertexNumber());
 
     return graph_[vertex];
   }
 
-  long long GetVertexNumber() const { return vertex_numbers_; }
+  long long GetVertexNumber() const { return graph_.size() - 1; }
 
   void CalculateDistances(long long finish_vertex) {
-    assert(finish_vertex <= vertex_numbers_);
+    assert(finish_vertex <= GetVertexNumber());
 
-    distances_from_vertex_.assign(vertex_numbers_ + 1, kMaxValue);
+    distances_from_vertex_.assign(graph_.size(), kMaxValue);
 
     std::queue<long long> vertex_to_process;
     distances_from_vertex_[finish_vertex] = kZeroDistance;
@@ -89,17 +86,17 @@ class Graph {
   }
 
   long long GetDistance(long long vertex) const {
-    assert(vertex <= vertex_numbers_);
+    assert(vertex <= GetVertexNumber());
 
     return distances_from_vertex_[vertex];
   }
 
  private:
-  long long vertex_numbers_;
   long long edge_numbers_;
   Vector2D<long long> graph_;
   Vector1D<long long> distances_from_vertex_;
 };
+
 
 class BridgeFinder {
  private:
@@ -184,22 +181,6 @@ class ComponentFinder {
  public:
   ComponentFinder(const Graph& graph, const BridgeFinder& bridge_finder)
       : graph_(graph), bridge_finder_(bridge_finder) {}
-
-  // ComponentFinder(const ComponentFinder& other)
-  //     : graph_(other.graph_),
-  //       bridge_finder_(other.bridge_finder_),
-  //       component_(other.component_),
-  //       component_id_(other.component_id_) {}
-
-  // ComponentFinder& operator=(const ComponentFinder& other) {
-  //   if (this != &other) {
-  //     graph_ = other.graph_;
-  //     bridge_finder_ = other.bridge_finder_;
-  //     component_ = other.component_;
-  //     component_id_ = other.component_id_;
-  //   }
-  //   return *this;
-  // }
 
   void FindComponents() {
     long long vertex_numbers = graph_.GetVertexNumber();
@@ -395,14 +376,15 @@ class GameSolver {
  public:
   GameSolver(long long vertex_numbers, long long edge_numbers,
              long long finish_vertex)
-      : vertex_numbers_(vertex_numbers),
-        edge_numbers_(edge_numbers),
+      : edge_numbers_(edge_numbers),
         finish_vertex_(finish_vertex),
         original_graph_(vertex_numbers, edge_numbers) {}
 
   void AddRoad(long long lhs, long long rhs) {
     original_graph_.AddEdge(lhs, rhs);
   }
+
+  long long GetEdgeCount() { return edge_numbers_; }
 
   void Preprocess() {
     original_graph_.CalculateDistances(finish_vertex_);
@@ -433,7 +415,6 @@ class GameSolver {
   }
 
  private:
-  long long vertex_numbers_;
   long long edge_numbers_;
   long long finish_vertex_;
 
@@ -444,28 +425,27 @@ class GameSolver {
   std::unique_ptr<LcaFinder> lca_finder_;
 };
 
-void InputDataAndProcessQueries();
 
-int main() {
-  InputDataAndProcessQueries();
+std::istream& operator>>(std::istream& stream, GameSolver& solver) {
+  for (long long i = 0; i < solver.GetEdgeCount(); ++i) {
+    long long lhs;
+    long long rhs;
+    stream >> lhs >> rhs;
+    solver.AddRoad(lhs, rhs);
+  }
 
-  return 0;
+  return stream;
 }
 
-void InputDataAndProcessQueries() {
+
+int main() {
   long long vertex_numbers = 0;
   long long edge_numbers = 0;
   long long finish_vertex = 0;
   std::cin >> vertex_numbers >> edge_numbers >> finish_vertex;
 
   GameSolver solver(vertex_numbers, edge_numbers, finish_vertex);
-
-  for (long long i = 0; i < edge_numbers; ++i) {
-    long long lhs;
-    long long rhs;
-    std::cin >> lhs >> rhs;
-    solver.AddRoad(lhs, rhs);
-  }
+  std::cin >> solver;
 
   solver.Preprocess();
 
@@ -477,4 +457,7 @@ void InputDataAndProcessQueries() {
     std::cin >> lhs >> rhs;
     std::cout << solver.AnswerQuery(lhs, rhs) << "\n";
   }
+
+  return 0;
 }
+
