@@ -15,31 +15,61 @@ using EdgeType = std::pair<long long, long long>;
 const long long kMinValue = std::numeric_limits<long long>::min();
 const long long kMaxValue = std::numeric_limits<long long>::max();
 
+class Graph {
+ public:
+  Graph() = default;
+
+  Graph(long long vertex_numbers, long long edges_numbers)
+      : edges_numbers_(edges_numbers), graph_(vertex_numbers + 1) {}
+
+  void AddEdge(long long start, long long end, long long weight) {
+    graph_[start].push_back({end, weight});
+    graph_[end].push_back({start, weight});
+  }
+
+  const Vector1D<EdgeType>& GetNeighbors(long long vertex) const {
+    return graph_[vertex];
+  }
+
+  long long GetVertexCount() const {
+    return static_cast<long long>(graph_.size() - 1);
+  }
+
+  long long GetEdgesCount() const { return edges_numbers_; }
+
+  const Vector2D<EdgeType>& GetAdjacencyList() const { return graph_; }
+
+ private:
+  long long edges_numbers_ = 0;
+  Vector2D<EdgeType> graph_;
+};
+
+std::istream& operator>>(std::istream& stream, Graph& graph) {
+  for (long long i = 0; i < graph.GetEdgesCount(); ++i) {
+    long long start;
+    long long end;
+    long long weight;
+    stream >> start >> end >> weight;
+    graph.AddEdge(start, end, weight);
+  }
+
+  return stream;
+}
+
 class PrimsAlgorithm {
  public:
   PrimsAlgorithm() = default;
 
-  PrimsAlgorithm(long long vertex_numbers, long long edges_numbers)
-      : vertex_numbers_(vertex_numbers),
-        edges_numbers_(edges_numbers),
-        graph_(vertex_numbers + 1, Vector1D<EdgeType>()) {}
+  PrimsAlgorithm(const Graph& graph) : graph_(graph) {}
 
-  void InitializeGraph() {
-    for (long long edge = 0; edge < edges_numbers_; ++edge) {
-      long long start;
-      long long end;
-      long long weight;
-      std::cin >> start >> end >> weight;
-      graph_[start].push_back({end, weight});
-      graph_[end].push_back({start, weight});
-    }
-  }
+  Graph CalculateMaxSpanningTree() {
+    long long vertex_numbers = graph_.GetVertexCount();
+    Graph max_spanning_tree(vertex_numbers, 0);
 
-  void CalculateMaxSpanningTree() {
     std::set<EdgeType, std::greater<EdgeType>> vertex_queue;
-    Vector1D<long long> max_edges(vertex_numbers_ + 1, kMinValue);
-    Vector1D<long long> chosen_neighbors(vertex_numbers_ + 1, 0);
-    std::vector<bool> uncaptures_vertices(vertex_numbers_ + 1, false);
+    Vector1D<long long> max_edges(vertex_numbers + 1, kMinValue);
+    Vector1D<long long> chosen_neighbors(vertex_numbers + 1, 0);
+    std::vector<bool> uncaptures_vertices(vertex_numbers + 1, false);
 
     max_edges[1] = kMinValue;
     vertex_queue.insert({kMinValue, 1});
@@ -57,13 +87,12 @@ class PrimsAlgorithm {
 
       long long best_neightbor = chosen_neighbors[current_vertex];
       if (best_neightbor != 0) {
-        max_spanning_tree_[best_neightbor].push_back(
-            {current_vertex, max_edges[current_vertex]});
-        max_spanning_tree_[current_vertex].push_back(
-            {best_neightbor, max_edges[current_vertex]});
+        max_spanning_tree.AddEdge(best_neightbor, current_vertex,
+                                  max_edges[current_vertex]);
       }
 
-      for (const auto& [neighbor, weight] : graph_[current_vertex]) {
+      for (const auto& [neighbor, weight] :
+           graph_.GetNeighbors(current_vertex)) {
         if (!uncaptures_vertices[neighbor] && weight > max_edges[neighbor]) {
           vertex_queue.erase({max_edges[neighbor], neighbor});
           max_edges[neighbor] = weight;
@@ -72,34 +101,27 @@ class PrimsAlgorithm {
         }
       }
     }
-  }
 
-  Vector2D<EdgeType>& GetTree() {
-    max_spanning_tree_.clear();
-    max_spanning_tree_.assign(vertex_numbers_ + 1, Vector1D<EdgeType>());
-    CalculateMaxSpanningTree();
-    return max_spanning_tree_;
+    return max_spanning_tree;
   }
 
  private:
-  long long vertex_numbers_ = 0;
-  long long edges_numbers_ = 0;
-  Vector2D<EdgeType> graph_;
-  Vector2D<EdgeType> max_spanning_tree_;
+  Graph graph_;
 };
 
-class MaxSpanningTree {
+class GetMinValueOnPath {
  public:
-  MaxSpanningTree() = default;
+  GetMinValueOnPath() = default;
 
-  MaxSpanningTree(const Vector2D<EdgeType>& graph) : graph_(graph) {
-    log_vertex_numbers_ = std::ceil(std::log2(graph_.size())) + 1;
-    depths_.resize(graph_.size());
+  GetMinValueOnPath(const Graph& graph) : graph_(graph) {
+    long long vertex_numbers = graph_.GetVertexCount();
+    log_vertex_numbers_ = std::ceil(std::log2(vertex_numbers)) + 1;
+    depths_.resize(vertex_numbers);
 
-    binary_ancestors_.resize(graph_.size(),
+    binary_ancestors_.resize(vertex_numbers,
                              Vector1D<long long>(log_vertex_numbers_, 0));
     min_binary_edges_.resize(
-        graph_.size(), Vector1D<long long>(log_vertex_numbers_, kMaxValue));
+        vertex_numbers, Vector1D<long long>(log_vertex_numbers_, kMaxValue));
 
     InitVertexInformation(1);
   }
@@ -141,7 +163,7 @@ class MaxSpanningTree {
       return kMaxValue;
     }
 
-    for (const auto& [neighbor, weight] : graph_[vertex]) {
+    for (const auto& [neighbor, weight] : graph_.GetNeighbors(vertex)) {
       if (neighbor == parent) {
         return weight;
       }
@@ -164,14 +186,14 @@ class MaxSpanningTree {
                    min_binary_edges_[prev_ancestor][i - 1]);
     }
 
-    for (const auto& [neighbor, weight] : graph_[vertex]) {
+    for (const auto& [neighbor, weight] : graph_.GetNeighbors(vertex)) {
       if (neighbor != parent) {
         InitVertexInformation(neighbor, vertex, depth + 1);
       }
     }
   }
 
-  Vector2D<EdgeType> graph_;
+  Graph graph_;
   long long log_vertex_numbers_;
 
   Vector2D<long long> binary_ancestors_;
@@ -179,28 +201,25 @@ class MaxSpanningTree {
   Vector1D<long long> depths_;
 };
 
-void AnswerQueries();
-
 int main() {
-  AnswerQueries();
-
-  return 0;
-}
-
-void AnswerQueries() {
   long long vertex_numbers;
   long long edges_numbers;
   long long queries_numbers;
   std::cin >> vertex_numbers >> edges_numbers >> queries_numbers;
 
-  PrimsAlgorithm prim(vertex_numbers, edges_numbers);
-  prim.InitializeGraph();
+  Graph network(vertex_numbers, edges_numbers);
+  std::cin >> network;
 
-  MaxSpanningTree tree(prim.GetTree());
+  PrimsAlgorithm prim(network);
+  Graph max_spanning_tree_in_network = prim.CalculateMaxSpanningTree();
+
+  GetMinValueOnPath calculator(max_spanning_tree_in_network);
   for (long long i = 0; i < queries_numbers; ++i) {
-    long long lhs;
-    long long rhs;
-    std::cin >> lhs >> rhs;
-    std::cout << tree.GetMinEdgeValue(lhs, rhs) << "\n";
+    long long server_start;
+    long long server_end;
+    std::cin >> server_start >> server_end;
+    std::cout << calculator.GetMinEdgeValue(server_start, server_end) << "\n";
   }
+
+  return 0;
 }
