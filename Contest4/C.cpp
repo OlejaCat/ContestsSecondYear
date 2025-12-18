@@ -10,36 +10,67 @@ template <typename T>
 using Vector2D = Vector1D<Vector1D<T>>;
 using EdgeType = std::pair<std::size_t, std::size_t>;
 
+class Graph {
+ public:
+  Graph() = default;
+
+  Graph(long long vertex_numbers, long long edges_numbers)
+      : edges_numbers_(edges_numbers), graph_(vertex_numbers + 1) {}
+
+  void AddEdge(long long start, long long end, long long weight) {
+    graph_[start].push_back({end, weight});
+    graph_[end].push_back({start, weight});
+  }
+
+  const Vector1D<EdgeType>& GetNeighbors(long long vertex) const {
+    return graph_[vertex];
+  }
+
+  long long GetVertexCount() const {
+    return static_cast<long long>(graph_.size() - 1);
+  }
+
+  long long GetEdgesCount() const { return edges_numbers_; }
+
+  const Vector2D<EdgeType>& GetAdjacencyList() const { return graph_; }
+
+ private:
+  long long edges_numbers_ = 0;
+  Vector2D<EdgeType> graph_;
+};
+
+std::istream& operator>>(std::istream& stream, Graph& graph) {
+  std::size_t vertex_count = graph.GetVertexCount();
+  for (std::size_t i = 1; i <= vertex_count; ++i) {
+    for (std::size_t j = 1; j <= vertex_count; ++j) {
+      long long weight;
+      stream >> weight;
+      graph.AddEdge(i, j, weight);
+    }
+  }
+
+  for (std::size_t i = 1; i <= vertex_count; ++i) {
+    long long weight;
+    stream >> weight;
+    graph.AddEdge(0, i, weight);
+  }
+
+  return stream;
+}
+
 class PrimsAlgorithm {
  public:
   PrimsAlgorithm() = default;
 
-  PrimsAlgorithm(std::size_t vertex_numbers)
-      : vertex_numbers_(vertex_numbers),
-        graph_(vertex_numbers + 1, Vector1D<EdgeType>()) {}
-
-  void InitializeGraph(const Vector2D<std::size_t>& meeting_costs,
-                       const Vector1D<std::size_t>& hiring_costs) {
-    for (std::size_t i = 1; i <= vertex_numbers_; ++i) {
-      for (std::size_t j = 1; j <= vertex_numbers_; ++j) {
-        std::size_t weight = meeting_costs[i - 1][j - 1];
-        graph_[i].push_back({j, weight});
-        graph_[j].push_back({i, weight});
-      }
-    }
-
-    for (std::size_t i = 1; i <= vertex_numbers_; ++i) {
-      std::size_t weight = hiring_costs[i - 1];
-      graph_[0].push_back({i, weight});
-      graph_[i].push_back({0, weight});
-    }
-  }
+  PrimsAlgorithm(const Graph& graph) : graph_(graph) {}
 
   std::size_t CalculateMinSum() {
+    long long vertex_numbers = graph_.GetVertexCount();
+
     std::set<EdgeType> vertex_queue;
-    Vector1D<std::size_t> min_edges(vertex_numbers_ + 1,
+    Vector1D<std::size_t> min_edges(vertex_numbers + 1,
                                     std::numeric_limits<std::size_t>::max());
-    std::vector<bool> uncaptures_vertices(vertex_numbers_ + 1, false);
+    std::vector<bool> uncaptures_vertices(vertex_numbers + 1, false);
 
     min_edges[0] = 0;
     vertex_queue.insert({0, 0});
@@ -59,7 +90,8 @@ class PrimsAlgorithm {
       uncaptures_vertices[current_vertex] = true;
       min_weight += current_weight;
 
-      for (const auto& [neighbor, weight] : graph_[current_vertex]) {
+      for (const auto& [neighbor, weight] :
+           graph_.GetNeighbors(current_vertex)) {
         if (!uncaptures_vertices[neighbor] && weight < min_edges[neighbor]) {
           vertex_queue.erase({min_edges[neighbor], neighbor});
           min_edges[neighbor] = weight;
@@ -72,39 +104,25 @@ class PrimsAlgorithm {
   }
 
  private:
-  std::size_t vertex_numbers_;
-  Vector2D<EdgeType> graph_;
+  Graph graph_;
 };
 
-void FindCandidates();
+std::size_t CalculateEdgesByCandidates(std::size_t candidates) {
+  return candidates * (candidates - 1) + candidates;
+}
 
 int main() {
   std::ios_base::sync_with_stdio(false);
   std::cin.tie(0);
 
-  FindCandidates();
-
-  return 0;
-}
-
-void FindCandidates() {
   std::size_t candidates = 0;
   std::cin >> candidates;
 
-  Vector2D<std::size_t> meeting_costs(candidates,
-                                      Vector1D<std::size_t>(candidates));
-  for (std::size_t i = 0; i < candidates; ++i) {
-    for (std::size_t j = 0; j < candidates; ++j) {
-      std::cin >> meeting_costs[i][j];
-    }
-  }
+  Graph graph(candidates + 1, CalculateEdgesByCandidates(candidates));
+  std::cin >> graph;
 
-  Vector1D<std::size_t> hiring_costs(candidates);
-  for (std::size_t i = 0; i < candidates; ++i) {
-    std::cin >> hiring_costs[i];
-  }
-
-  PrimsAlgorithm prim(candidates);
-  prim.InitializeGraph(meeting_costs, hiring_costs);
+  PrimsAlgorithm prim(graph);
   std::cout << prim.CalculateMinSum() << "\n";
+
+  return 0;
 }
