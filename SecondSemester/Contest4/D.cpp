@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
+#include <istream>
 #include <ranges>
 #include <vector>
 #include <numbers>
@@ -175,6 +177,9 @@ class Polygon {
  public:
   Polygon() = default;
 
+  explicit Polygon(std::size_t size) 
+      : polygon_(size) {}
+
   explicit Polygon(std::vector<Point2D> polygon)
       : polygon_(std::move(polygon)) {}
 
@@ -281,7 +286,33 @@ class MinkowskiSum {
   Polygon rhs_;
 };
 
+std::istream& operator>>(std::istream& istream, Polygon& polygon) {
+  std::vector<geometry::Point2D> points(polygon.size());
+  for (auto& point : points) {
+    std::cin >> point;
+  }
+
+  polygon = geometry::Polygon(std::move(points));
+
+  return istream;
+}
+
 }  // namespace geometry
+
+double CalculateMinimumTime(const geometry::Polygon& difference) {
+  double min_distance = 1e12; 
+  geometry::Point2D origin_point(0, 0);
+
+  std::size_t diff_vertex_count = difference.size();
+  for (std::size_t index : std::views::iota(0uz, diff_vertex_count)) {
+    std::size_t next_index = (index + 1) % diff_vertex_count;
+    geometry::Segment border_edge(difference[index], difference[next_index]);
+    
+    min_distance = std::min(min_distance, border_edge.Distance(origin_point));
+  }
+
+  return std::max(0.0, min_distance - 60.0);
+}
 
 int main() {
   std::ios_base::sync_with_stdio(false);
@@ -292,34 +323,14 @@ int main() {
 
   std::cin >> airport_vertex_count >> cloud_vertex_count;
 
-  std::vector<geometry::Point2D> airport_points(airport_vertex_count);
-  for (auto& point : airport_points) {
-    std::cin >> point;
-  }
-  geometry::Polygon airport(std::move(airport_points));
+  geometry::Polygon airport(airport_vertex_count);
+  std::cin >> airport;
 
-  std::vector<geometry::Point2D> cloud_points(cloud_vertex_count);
-  for (auto& point : cloud_points) {
-    std::cin >> point;
-  }
-  geometry::Polygon cloud(std::move(cloud_points));
-
+  geometry::Polygon cloud(cloud_vertex_count);
+  std::cin >> cloud;
 
   geometry::Polygon minkowski_diff = geometry::MinkowskiSum(airport, -cloud).Build();
-
-  double min_distance = 1e12; 
-  geometry::Point2D origin_point(0, 0);
-
-  std::size_t diff_vertex_count = minkowski_diff.size();
-  for (std::size_t index : std::views::iota(0uz, diff_vertex_count)) {
-    std::size_t next_index = (index + 1) % diff_vertex_count;
-    geometry::Segment border_edge(minkowski_diff[index], minkowski_diff[next_index]);
-    
-    min_distance = std::min(min_distance, border_edge.Distance(origin_point));
-  }
-
-  double minimum_time = std::max(0.0, min_distance - 60.0);
-
+  auto minimum_time = CalculateMinimumTime(minkowski_diff);
   std::cout << std::fixed << std::setprecision(8) << minimum_time << "\n";
 
   return 0;
