@@ -1,10 +1,11 @@
 #include <iostream>
 #include <limits>
-#include <map>
 #include <string>
+#include <string_view>
+#include <map>
 #include <vector>
 
-class GenerealizedSuffixTree {
+class GeneralizedSuffixTree {
  private:
   using StateId = std::size_t;
   using Index = std::size_t;
@@ -12,6 +13,7 @@ class GenerealizedSuffixTree {
 
   static const StateId kRootState = 0;
   static const Index kOpenInterval = std::numeric_limits<Index>::max();
+  static const std::size_t kNoParent = std::numeric_limits<std::size_t>::max();
 
   struct StringCut {
     StringId string_id;
@@ -22,6 +24,8 @@ class GenerealizedSuffixTree {
 
     bool IsEmpty() const { return end == kOpenInterval || end < start; }
   };
+
+  static constexpr StringCut kEmptyCut = {0, 0, 0};
 
   struct Edge {
     StringCut cut;
@@ -44,22 +48,22 @@ class GenerealizedSuffixTree {
   };
 
  public:
-  GenerealizedSuffixTree() { CreateState(); }
+  GeneralizedSuffixTree() { CreateState(); }
 
-  void Build(const std::string& text, StringId string_id) {
+  void Build(std::string_view text, StringId string_id) {
     if (texts_.size() <= string_id) {
       texts_.resize(string_id + 1);
     }
 
-    texts_[string_id] = text;
+    texts_[string_id] = std::string(text);
     current_string_id_ = string_id;
 
     ActivePoint active_point = {kRootState, 0};
 
     for (Index i = 0; i < text.length(); ++i) {
       active_point = Update(active_point.state, active_point.path_start, i);
-      active_point = Canonize(active_point.state,
-                              {string_id, active_point.path_start, i}, i);
+      active_point = GetCanonicalPoint(active_point.state,
+                                       {string_id, active_point.path_start, i}, i);
     }
 
     for (auto& state : states_) {
@@ -75,7 +79,7 @@ class GenerealizedSuffixTree {
     std::cout << states_.size() << "\n";
 
     std::size_t id_counter = 0;
-    DfsOutput(kRootState, -1, {0, 0, 0}, id_counter);
+    DfsOutput(kRootState, kNoParent, kEmptyCut, id_counter);
   }
 
  private:
@@ -84,7 +88,7 @@ class GenerealizedSuffixTree {
     std::size_t state_id = next_id_generator;
     ++next_id_generator;
 
-    if (parent_logical_id != -1) {
+    if (parent_logical_id != kNoParent) {
       Index actual_end_index = 0;
       if (incoming_cut.end == kOpenInterval) {
         actual_end_index = texts_[incoming_cut.string_id].length();
@@ -96,20 +100,17 @@ class GenerealizedSuffixTree {
                 << incoming_cut.start << " " << actual_end_index << "\n";
     }
 
-    for (const auto& [_, edge] :
-         states_[current_state_id].transitions) {
+    for (const auto& [_, edge] : states_[current_state_id].transitions) {
       DfsOutput(edge.target_state, state_id, edge.cut, next_id_generator);
     }
   }
 
-  ActivePoint Update(StateId active_state, Index path_start,
-                     Index current_index) {
+  ActivePoint Update(StateId active_state, Index path_start, Index current_index) {
     StateId previous_split_state = kRootState;
     char next_symbol = texts_[current_string_id_][current_index];
 
     StringCut path = {current_string_id_, path_start, current_index - 1};
-    SplitResult split =
-        TestAndSplit(active_state, path, next_symbol, current_index);
+    SplitResult split = CheckTransitionAndSplit(active_state, path, next_symbol, current_index);
 
     while (!split.is_endpoint) {
       SetTransition(split.state_to_extend,
@@ -120,12 +121,13 @@ class GenerealizedSuffixTree {
       GoSuffixLink(active_state, path_start);
 
       path = {current_string_id_, path_start, current_index - 1};
-      ActivePoint Canonized = Canonize(active_state, path, current_index);
-      active_state = Canonized.state;
-      path_start = Canonized.path_start;
+      
+      ActivePoint canonized_point = GetCanonicalPoint(active_state, path, current_index);
+      active_state = canonized_point.state;
+      path_start = canonized_point.path_start;
 
       path = {current_string_id_, path_start, current_index - 1};
-      split = TestAndSplit(active_state, path, next_symbol, current_index);
+      split = CheckTransitionAndSplit(active_state, path, next_symbol, current_index);
     }
 
     LinkSuffix(previous_split_state, active_state);
@@ -151,14 +153,12 @@ class GenerealizedSuffixTree {
     states_[source].transitions[edge_start_symbol] = {cut, target};
   }
 
-  ActivePoint Canonize(StateId active_state, StringCut path,
-                       Index current_index) {
+  ActivePoint GetCanonicalPoint(StateId active_state, StringCut path, Index current_index) {
     if (path.IsEmpty()) {
       return {active_state, path.start};
     }
 
-    auto iterator = states_[active_state].transitions.find(
-        texts_[path.string_id][path.start]);
+    auto iterator = states_[active_state].transitions.find(texts_[path.string_id][path.start]);
     if (iterator == states_[active_state].transitions.end()) {
       return {active_state, path.start};
     }
@@ -169,13 +169,10 @@ class GenerealizedSuffixTree {
     while (edge_length <= path.Length()) {
       path.start += edge_length;
       active_state = current_edge.target_state;
-      if (path.IsEmpty())
-        break;
+      if (path.IsEmpty()) break;
 
-      iterator = states_[active_state].transitions.find(
-          texts_[path.string_id][path.start]);
-      if (iterator == states_[active_state].transitions.end())
-        break;
+      iterator = states_[active_state].transitions.find(texts_[path.string_id][path.start]);
+      if (iterator == states_[active_state].transitions.end()) break;
 
       current_edge = iterator->second;
       edge_length = GetRealLength(current_edge.cut, current_index);
@@ -183,14 +180,12 @@ class GenerealizedSuffixTree {
     return {active_state, path.start};
   }
 
-  SplitResult TestAndSplit(StateId state, StringCut path, char next_symbol,
-                           Index current_index) {
+  SplitResult CheckTransitionAndSplit(StateId state, StringCut path, char next_symbol, Index current_index) {
     if (path.IsEmpty()) {
       return {states_[state].transitions.count(next_symbol) > 0, state};
     }
 
-    auto iterator =
-        states_[state].transitions.find(texts_[path.string_id][path.start]);
+    auto iterator = states_[state].transitions.find(texts_[path.string_id][path.start]);
     Edge edge = iterator->second;
     Index split_point = edge.cut.start + path.Length();
 
@@ -199,18 +194,15 @@ class GenerealizedSuffixTree {
     }
 
     StateId new_state = CreateState();
-    SetTransition(new_state, {edge.cut.string_id, split_point, edge.cut.end},
-                  edge.target_state);
-    SetTransition(state, {edge.cut.string_id, edge.cut.start, split_point - 1},
-                  new_state);
+    SetTransition(new_state, {edge.cut.string_id, split_point, edge.cut.end}, edge.target_state);
+    SetTransition(state, {edge.cut.string_id, edge.cut.start, split_point - 1}, new_state);
 
     return {false, new_state};
   }
 
   StateId CreateState() {
     states_.emplace_back();
-    StateId new_id = states_.size() - 1;
-    return new_id;
+    return states_.size() - 1;
   }
 
   std::size_t GetRealLength(StringCut cut, Index current_index) const {
@@ -222,7 +214,6 @@ class GenerealizedSuffixTree {
 
   std::vector<std::string> texts_;
   StringId current_string_id_ = 0;
-
   std::vector<StateType> states_;
 };
 
@@ -234,7 +225,7 @@ int main() {
   std::string second;
   std::cin >> first >> second;
 
-  GenerealizedSuffixTree tree;
+  GeneralizedSuffixTree tree;
   tree.Build(first, 0);
   tree.Build(second, 1);
 
